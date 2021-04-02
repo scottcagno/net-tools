@@ -2,11 +2,16 @@ package main
 
 import (
 	http2 "github.com/scottcagno/net-tools/pkg/http"
+	"github.com/scottcagno/net-tools/pkg/httputil"
 	"log"
 	"net/http"
 )
 
 func main() {
+
+	httputil.InfoLogger.Println("Something noteworthy happened")
+	httputil.WarningLogger.Println("There is something you should know about")
+	httputil.ErrorLogger.Println("Something went wrong")
 
 	mux := http2.NewServer(nil)
 

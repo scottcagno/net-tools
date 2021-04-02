@@ -1,0 +1,3 @@
+INFO: 2021/04/01 23:44:57 main.go:12: Something noteworthy happened
+WARNING: 2021/04/01 23:44:57 main.go:13: There is something you should know about
+ERROR: 2021/04/01 23:44:57 main.go:14: Something went wrong

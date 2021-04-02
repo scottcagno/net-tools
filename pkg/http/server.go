@@ -21,9 +21,9 @@ const (
 )
 
 type Server struct {
-	routes      []*Route
-	static, err http.Handler
-	logger      *log.Logger
+	routes       []*Route
+	static, errs http.Handler
+	logger       *log.Logger
 }
 
 func NewServer(logger *log.Logger) *Server {
@@ -40,7 +40,7 @@ func NewServer(logger *log.Logger) *Server {
 		static: http.StripPrefix("/static/", http.FileServer(http.Dir(STATIC_PATH))),
 		logger: logger,
 	}
-	s.HandleGet("/error/*", http.HandlerFunc(handleError))
+	s.Handle("/error/*", http.HandlerFunc(handleError))
 	return s
 }
 
