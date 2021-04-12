@@ -2,53 +2,44 @@ package main
 
 import (
 	"fmt"
+	"github.com/scottcagno/net-tools/pkg/web"
 	"log"
 	"net/http"
 )
 
 func main() {
-	mux := http.NewServeMux()
 
+	mux := http.NewServeMux()
 	mux.Handle("/", http.NotFoundHandler())
-	mux.Handle("/index", http.HandlerFunc(getIndex))
-	mux.Handle("/home", http.HandlerFunc(getHome))
-	mux.Handle("/login", http.HandlerFunc(getOrPostLogin))
+	mux.Handle("/index", getIndex())
+	mux.Handle("/home", getHome())
+	mux.Handle("/login", getLogin())
+
+	// add a logger
+	chain := web.Logger(mux)
 
 	// server
-	err := http.ListenAndServe(":8080", mux)
+	err := http.ListenAndServe(":8080", chain)
 	log.Fatal(err)
 }
 
-func allowMethod(w http.ResponseWriter, r *http.Request, method ...string) {
-	var allowed bool
-	for _, m := range method {
-		if m == r.Method {
-			allowed = true
-			break
-		}
-	}
-	if allowed {
-		return
-	}
-	code := http.StatusMethodNotAllowed
-	http.Error(w, http.StatusText(code), code)
+func getIndex() http.Handler {
+	// only allow GET
+	return web.GetFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "GET /index hit!")
+	})
 }
 
-func getIndex(w http.ResponseWriter, r *http.Request) {
-	allowMethod(w, r, http.MethodGet)
-	fmt.Fprintf(w, "GET /index hit!")
+func getHome() http.Handler {
+	// only allow GET
+	return web.GetFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "GET /home hit!")
+	})
 }
 
-func getHome(w http.ResponseWriter, r *http.Request) {
-	allowMethod(w, r, http.MethodGet)
-	fmt.Fprintf(w, "GET /home hit!")
-}
-
-func getOrPostLogin(w http.ResponseWriter, r *http.Request) {
-	allowMethod(w, r, http.MethodGet, http.MethodPost)
-	if r.Method == http.MethodPost {
-		fmt.Fprintf(w, "POST /login hit!")
-		return
-	}
-	fmt.Fprintf(w, "GET /login hit!")
+func getLogin() http.Handler {
+	// only allow GET
+	return web.GetFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "GET /login hit!")
+	})
 }
