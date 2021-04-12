@@ -1,49 +1,54 @@
 package main
 
 import (
-	http2 "github.com/scottcagno/net-tools/pkg/http"
-	"github.com/scottcagno/net-tools/pkg/logger"
+	"fmt"
 	"log"
 	"net/http"
 )
 
 func main() {
+	mux := http.NewServeMux()
 
-	logger.InfoLogger.Println("Something noteworthy happened")
-	logger.WarningLogger.Println("There is something you should know about")
-	logger.ErrorLogger.Println("Something went wrong")
-
-	mux := http2.NewServer(nil)
-
-	// example middleware
-	final := http.HandlerFunc(finalMiddleware)
-	mux.HandleGet("/", middlewareOne(middlewareTwo(final)))
+	mux.Handle("/", http.NotFoundHandler())
+	mux.Handle("/index", http.HandlerFunc(getIndex))
+	mux.Handle("/home", http.HandlerFunc(getHome))
+	mux.Handle("/login", http.HandlerFunc(getOrPostLogin))
 
 	// server
-	err := http.ListenAndServe(":3000", mux)
+	err := http.ListenAndServe(":8080", mux)
 	log.Fatal(err)
 }
 
-func middlewareOne(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Executing middlewareOne")
-		next.ServeHTTP(w, r)
-		log.Println("Executing middlewareOne again")
-	})
-}
-
-func middlewareTwo(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Executing middlewareTwo")
-		if r.URL.Path == "/foo" {
-			return
+func allowMethod(w http.ResponseWriter, r *http.Request, method ...string) {
+	var allowed bool
+	for _, m := range method {
+		if m == r.Method {
+			allowed = true
+			break
 		}
-		next.ServeHTTP(w, r)
-		log.Println("Executing middlewareTwo again")
-	})
+	}
+	if allowed {
+		return
+	}
+	code := http.StatusMethodNotAllowed
+	http.Error(w, http.StatusText(code), code)
 }
 
-func finalMiddleware(w http.ResponseWriter, r *http.Request) {
-	log.Println("Executing finalHandler")
-	w.Write([]byte("OK"))
+func getIndex(w http.ResponseWriter, r *http.Request) {
+	allowMethod(w, r, http.MethodGet)
+	fmt.Fprintf(w, "GET /index hit!")
+}
+
+func getHome(w http.ResponseWriter, r *http.Request) {
+	allowMethod(w, r, http.MethodGet)
+	fmt.Fprintf(w, "GET /home hit!")
+}
+
+func getOrPostLogin(w http.ResponseWriter, r *http.Request) {
+	allowMethod(w, r, http.MethodGet, http.MethodPost)
+	if r.Method == http.MethodPost {
+		fmt.Fprintf(w, "POST /login hit!")
+		return
+	}
+	fmt.Fprintf(w, "GET /login hit!")
 }
