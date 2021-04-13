@@ -1,7 +1,6 @@
 package web
 
 import (
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -9,9 +8,11 @@ import (
 	"time"
 )
 
-var (
-	DefaultLogger func(next http.Handler) http.Handler
-)
+func init() {
+	DefaultLogger = RequestLogger(NewLogger(os.Stdout))
+}
+
+var DefaultLogger func(next http.Handler) http.Handler
 
 func Logger(next http.Handler) http.Handler {
 	return DefaultLogger(next)
@@ -82,15 +83,4 @@ func LogEntry(logger *log.Logger, prefix string, code int, r *http.Request) {
 	}
 	logger.SetPrefix(prefix)
 	logger.Printf(format, values...)
-}
-
-func NewLogger(writer io.Writer) *log.Logger {
-	if writer == nil {
-		writer = os.Stderr
-	}
-	return log.New(writer, "", log.Ldate|log.Ltime|log.Lshortfile|log.Lmsgprefix)
-}
-
-func init() {
-	DefaultLogger = RequestLogger(NewLogger(os.Stdout))
 }

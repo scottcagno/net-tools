@@ -19,7 +19,7 @@ func main() {
 	chain := web.Logger(mux)
 
 	// server
-	err := http.ListenAndServe(":8080", chain)
+	err := web.ListenAndServe(":8080", chain)
 	log.Fatal(err)
 }
 
