@@ -10,8 +10,8 @@ import (
 
 func main() {
 
-	StoreTest()
-	return
+	//StoreTest() return
+
 	s := NewSimpleStore("./")
 
 	mux := http.NewServeMux()
