@@ -10,7 +10,7 @@ import (
 func main() {
 
 	// open a file
-	filepath1 := "cmd/io/test.txt"
+	filepath1 := "cmd/io/test/in.txt"
 	fmt.Printf("Opening file (%s) and reading data into memory\n", filepath1)
 	f1, err := file.Open(filepath1)
 	if err != nil {
@@ -40,7 +40,7 @@ func main() {
 	f1.Close()
 
 	// open a new file and write contents to it
-	filepath2 := "cmd/io/out/test-copy.txt"
+	filepath2 := "cmd/io/test/out.txt"
 	fmt.Printf("Opening file (%s) and writing data from memory\n", filepath2)
 	f2, err := file.Open(filepath2)
 	if err != nil {
