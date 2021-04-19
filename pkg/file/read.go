@@ -21,6 +21,15 @@ func NewReader(r io.Reader) *Reader {
 	}
 }
 
+func (r *Reader) LineNumber() int {
+	return r.numLine
+}
+
+func (r *Reader) Read2() (line []byte, err error) {
+	line, err = r.readLine2()
+	return line, err
+}
+
 func (r *Reader) Read() (line []byte, err error) {
 	line, err = r.readLine()
 	return line, err
@@ -37,6 +46,16 @@ func (r *Reader) ReadAll() (lines [][]byte, err error) {
 		}
 		lines = append(lines, line)
 	}
+}
+
+func (r *Reader) readLine2() ([]byte, error) {
+	line, pref, err := make([]byte, 0), true, error(nil)
+	for pref && err == nil {
+		line, pref, err = r.r.ReadLine()
+		line = append(line, line...)
+	}
+	r.numLine++
+	return line, err
 }
 
 func (r *Reader) readLine() ([]byte, error) {
