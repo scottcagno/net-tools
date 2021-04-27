@@ -5,6 +5,7 @@ import (
 	"github.com/scottcagno/net-tools/pkg/file"
 	"io"
 	"log"
+	"strings"
 )
 
 func OpenFileAndReadDataIntoBuffer(filepath string, lines *[][]byte, verbose bool) {
@@ -12,7 +13,7 @@ func OpenFileAndReadDataIntoBuffer(filepath string, lines *[][]byte, verbose boo
 	if verbose {
 		fmt.Printf("Opening file (%s) and reading data into memory\n", filepath)
 	}
-	f1, err := file.Open(filepath)
+	f, err := file.NewFileHandler(filepath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -21,9 +22,9 @@ func OpenFileAndReadDataIntoBuffer(filepath string, lines *[][]byte, verbose boo
 	//var lines [][]byte
 
 	// read contents into memory
-	r, ln := file.NewReader(f1), 1
+	ln := 1
 	for {
-		line, err := r.Read()
+		line, err := f.ReadLine()
 		if err == io.EOF {
 			break
 		}
@@ -40,7 +41,7 @@ func OpenFileAndReadDataIntoBuffer(filepath string, lines *[][]byte, verbose boo
 		fmt.Printf("Finished. Closing file (%s)\n", filepath)
 	}
 	// close file, and open different file
-	f1.Close()
+	f.Close()
 }
 
 func OpenFileAndWriteDataFromBuffer(filepath string, lines *[][]byte, verbose bool) {
@@ -48,32 +49,60 @@ func OpenFileAndWriteDataFromBuffer(filepath string, lines *[][]byte, verbose bo
 	if verbose {
 		fmt.Printf("Opening file (%s) and writing data from memory\n", filepath)
 	}
-	f2, err := file.Open(filepath)
+
+	// write contents from memory onto disk
+	f, err := file.NewFileHandler(filepath)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// write contents from memory onto disk
-	w := file.NewWriter(f2)
 	for ln, line := range *lines {
 		if verbose {
 			fmt.Printf("Writing line %d into file...\n", ln)
 		}
-		if err := w.Write(line); err != nil {
+		if err := f.WriteLine(line); err != nil {
 			log.Fatalf("error writing line to file: %v\n", err)
 		}
 	}
 	if verbose {
 		fmt.Printf("Finished. Flush, error check and close file (%s)\n", filepath)
 	}
-	w.Flush() // flush writer and check for any errors
-	if err := w.Error(); err != nil {
+	f.Flush() // flush writer and check for any errors
+	if err := f.Error(); err != nil {
 		log.Fatal(err)
 	}
-	f2.Close()
+	f.Close()
+}
+
+func handleErr(err error) {
+	if err != nil {
+		log.Panic(err)
+	}
 }
 
 func main() {
+
+	f, err := file.NewFileHandler("cmd/io/test/in.txt")
+	handleErr(err)
+
+	lc := f.LineCache()
+	for i, l := range lc {
+		if i == 0 {
+			continue
+		}
+		fmt.Printf("line %d begins at offset %d\n", i, l)
+	}
+	return
+
+	var ln int64 = 32
+	err = f.SeekLine(ln)
+	handleErr(err)
+
+	line, err := f.ReadLine()
+	handleErr(err)
+
+	fmt.Printf("go to line %d, read, and print: %s\n", ln, line)
+
+	return
 
 	filepath1, verbose := "cmd/io/test/in.txt", false
 	var lines [][]byte
@@ -93,19 +122,10 @@ func main() {
 
 }
 
-func foo() {
-	var err error
-	// read all the lines in the file
-	fmt.Println("Reading all the lines in the file")
-	err = file.Read("cmd/io/test.txt")
-	if err != nil {
-		log.Println(err)
-	}
+func TestLargeFiles(filepath string, verbose bool) {
+	var lines [][]byte
+	OpenFileAndReadDataIntoBuffer(filepath, &lines, verbose)
 
-	// read specified lines in the file
-	fmt.Println("Reading line twenty three in the file")
-	err = file.ReadLine("cmd/io/test.txt", 23)
-	if err != nil {
-		log.Println(err)
-	}
+	filepath = strings.Replace(filepath, ".txt", ".out.txt", 1)
+	OpenFileAndWriteDataFromBuffer(filepath, &lines, verbose)
 }

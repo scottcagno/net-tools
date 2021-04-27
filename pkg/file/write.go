@@ -10,7 +10,7 @@ type Writer struct {
 	w     *bufio.Writer
 }
 
-func NewWriter(w io.Writer) *Writer {
+func NewWriter(w io.WriteSeeker) *Writer {
 	return &Writer{
 		Delim: '\n',
 		w:     bufio.NewWriter(w),
