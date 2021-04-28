@@ -80,7 +80,6 @@ func handleErr(err error) {
 }
 
 func main() {
-
 	f, err := file.NewFileHandler("cmd/io/test/in.txt")
 	handleErr(err)
 
