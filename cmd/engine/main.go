@@ -9,9 +9,10 @@ import (
 	"os"
 )
 
-// https://play.golang.org/p/gaWCeLMiXZG
-// https://play.golang.org/p/i7Rkw_fH1p2 <-- updated one
-// https://play.golang.org/p/adqdT4lSuaZ <-- most up to date one
+// https://play.golang.org/p/gaWCeLMiXZG <-- old, v1
+// https://play.golang.org/p/i7Rkw_fH1p2 <-- old, v2
+// https://play.golang.org/p/adqdT4lSuaZ <-- old, v3
+// https://play.golang.org/p/OaCJPVRz19d <-- most up to date version, v4
 
 func main() {
 	e := engine.Open("cmd/engine/test/data.txt")
