@@ -123,5 +123,49 @@ func (r *record) MarshalBinary() ([]byte, error) {
 }
 
 func (r *record) UnmarshalBinary(data []byte) error {
+	buf := bytes.NewBuffer(data)
+	rd := NewReader(bufio.NewReader(buf))
+	// read header
+	var err error
+	r.header.status, err = rd.ReadByte()
+	if err != nil {
+		return err
+	}
+	// TODO: CONTINUE FROM HERE
+	return nil
+	err = w.WriteByte(r.magic)
+	if err != nil {
+		return err
+	}
+	err = w.WriteUint16(r.extra)
+	if err != nil {
+		return err
+	}
+	err = w.WriteUint16(r.pages)
+	if err != nil {
+		return err
+	}
+	err = w.WriteUint64(r.length)
+	if err != nil {
+		return err
+	}
+	err = w.WriteUint16(r.padding)
+	if err != nil {
+		return err
+	}
+	// write data
+	err = w.WriteBytes(r.data)
+	if err != nil {
+		return err
+	}
+	// write padding
+	err = w.WriteBytes(make([]byte, r.padding, r.padding))
+	if err != nil {
+		return err
+	}
+	err = w.Flush()
+	if err != nil {
+		return err
+	}
 	return nil
 }
