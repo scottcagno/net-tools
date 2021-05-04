@@ -1,5 +1,10 @@
 package ngin
 
+import (
+	"bufio"
+	"bytes"
+)
+
 const (
 	szKB     = 1 << 10
 	szMB     = 1 << 20
@@ -30,32 +35,91 @@ func align(n int) (uint64, uint16) {
 	return alignBytes(n), alignPages(n)
 }
 
+// header represents a the header of a data record. It stores the status of the
+// record, a magic byte, an extra uint16 marker, a page count marker, the length
+// of the actual data in the record and the padding size to page align the record.
+type header struct {
+	status  byte   // 0 - free, 1 - active, 2 - deleted
+	magic   byte   // magic is currently unused, but was put there for future use (in case)
+	extra   uint16 // extra is currently unused, but was put there for future use (in case)
+	pages   uint16 // number of aligned pages, 65535 pages is the max (255mb)
+	length  uint64 // total length of record in bytes, 268431360 (not bound by uint64 type) bytes is the max (255mb)
+	padding uint16 // number of bytes to pad after the header and raw data
+}
+
 // record represents a data record. It has a small header that stores the size
 // of the record as well as some other markers for empty, deleted, etc. It may
 // vary in size, but will always be perfectly page aligned. The header bytes
 // (including the padding) occupy 16 bytes in addition to the raw data itself.
 type record struct {
-	status  byte   // 0 - free, 1 - active, 2 - deleted
-	extra   byte   // extra is currently unused, but was put there for future use (in case)
-	pages   uint16 // number of aligned pages, 65535 pages is the max (255mb)
-	length  uint64 // total length of record in bytes, 268431360 (not bound by uint64 type) bytes is the max (255mb)
-	padding uint16 // number of bytes to pad after the header and raw data
+	*header        // embedded header
 	data    []byte // actual data
 }
 
+// newHeader takes the length of the raw data, known as 'dl', and creates
+// and returns a new filled header struct based on provided data length
+func newHeader(dl int) *header {
+	abc, apc := align(dl)
+	return &header{
+		status:  byte(1),
+		magic:   byte(0),
+		extra:   uint16(0),
+		pages:   uint16(apc),
+		length:  uint64(dl),
+		padding: uint16(abc - uint64(dl+szHeader)),
+	}
+}
+
 func newRecord(b []byte) *record {
-	abc, apc := align(len(b))
 	return &record{
-		status:  1,
-		pages:   apc,
-		length:  uint64(len(b)),
-		padding: uint16(abc - uint64(len(b)+szHeader)),
-		data:    b,
+		header: newHeader(len(b)),
+		data:   b,
 	}
 }
 
 func (r *record) MarshalBinary() ([]byte, error) {
-	return nil, nil
+	var buf bytes.Buffer
+	w := NewWriter(bufio.NewWriter(&buf))
+	// write header
+	err := w.WriteByte(r.status)
+	if err != nil {
+		return nil, err
+	}
+	err = w.WriteByte(r.magic)
+	if err != nil {
+		return nil, err
+	}
+	err = w.WriteUint16(r.extra)
+	if err != nil {
+		return nil, err
+	}
+	err = w.WriteUint16(r.pages)
+	if err != nil {
+		return nil, err
+	}
+	err = w.WriteUint64(r.length)
+	if err != nil {
+		return nil, err
+	}
+	err = w.WriteUint16(r.padding)
+	if err != nil {
+		return nil, err
+	}
+	// write data
+	err = w.WriteBytes(r.data)
+	if err != nil {
+		return nil, err
+	}
+	// write padding
+	err = w.WriteBytes(make([]byte, r.padding, r.padding))
+	if err != nil {
+		return nil, err
+	}
+	err = w.Flush()
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 func (r *record) UnmarshalBinary(data []byte) error {
