@@ -8,23 +8,23 @@ import (
 	"unsafe"
 )
 
-// Writer for writing
-type Writer struct {
+// BinaryWriter for writing
+type BinaryWriter struct {
 	bw *bufio.Writer
 }
 
-// NewWriter returns a new Writer
-func NewWriter(w io.Writer) *Writer {
-	return &Writer{bufio.NewWriter(w)}
+// NewBinaryWriter returns a new Writer
+func NewBinaryWriter(w io.Writer) *BinaryWriter {
+	return &BinaryWriter{bufio.NewWriter(w)}
 }
 
 // Flush the buffered bytes to the underlying writer
-func (w *Writer) Flush() error {
+func (w *BinaryWriter) Flush() error {
 	return w.bw.Flush()
 }
 
 // WriteUvarint writes a uvarint
-func (w *Writer) WriteUvarint(x uint64) error {
+func (w *BinaryWriter) WriteUvarint(x uint64) error {
 	var buf [10]byte
 	n := binary.PutUvarint(buf[:], x)
 	_, err := w.bw.Write(buf[:n])
@@ -32,7 +32,7 @@ func (w *Writer) WriteUvarint(x uint64) error {
 }
 
 // WriteVarint writes a varint
-func (w *Writer) WriteVarint(x int64) error {
+func (w *BinaryWriter) WriteVarint(x int64) error {
 	var buf [10]byte
 	n := binary.PutVarint(buf[:], x)
 	_, err := w.bw.Write(buf[:n])
@@ -40,7 +40,7 @@ func (w *Writer) WriteVarint(x int64) error {
 }
 
 // WriteUint32 writes a uint32
-func (w *Writer) WriteUint32(x uint32) error {
+func (w *BinaryWriter) WriteUint32(x uint32) error {
 	var buf [4]byte
 	binary.LittleEndian.PutUint32(buf[:], x)
 	_, err := w.bw.Write(buf[:])
@@ -48,12 +48,12 @@ func (w *Writer) WriteUint32(x uint32) error {
 }
 
 // WriteInt32 writes an int32
-func (w *Writer) WriteInt32(x int32) error {
+func (w *BinaryWriter) WriteInt32(x int32) error {
 	return w.WriteUint32(uint32(x))
 }
 
 // WriteUint16 writes a uint16
-func (w *Writer) WriteUint16(x uint16) error {
+func (w *BinaryWriter) WriteUint16(x uint16) error {
 	var buf [2]byte
 	binary.LittleEndian.PutUint16(buf[:], x)
 	_, err := w.bw.Write(buf[:])
@@ -61,27 +61,27 @@ func (w *Writer) WriteUint16(x uint16) error {
 }
 
 // WriteInt16 writes an int16
-func (w *Writer) WriteInt16(x int16) error {
+func (w *BinaryWriter) WriteInt16(x int16) error {
 	return w.WriteUint16(uint16(x))
 }
 
 // WriteUint8 writes a uint8
-func (w *Writer) WriteUint8(x uint8) error {
+func (w *BinaryWriter) WriteUint8(x uint8) error {
 	return w.bw.WriteByte(x)
 }
 
 // WriteInt8 writes an int8
-func (w *Writer) WriteInt8(x int8) error {
+func (w *BinaryWriter) WriteInt8(x int8) error {
 	return w.WriteUint8(uint8(x))
 }
 
 // WriteByte writes a byte
-func (w *Writer) WriteByte(x byte) error {
+func (w *BinaryWriter) WriteByte(x byte) error {
 	return w.WriteUint8(uint8(x))
 }
 
 // WriteUint64 writes a uint64
-func (w *Writer) WriteUint64(x uint64) error {
+func (w *BinaryWriter) WriteUint64(x uint64) error {
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], x)
 	_, err := w.bw.Write(buf[:])
@@ -89,22 +89,22 @@ func (w *Writer) WriteUint64(x uint64) error {
 }
 
 // WriteInt64 writes an int64
-func (w *Writer) WriteInt64(x int64) error {
+func (w *BinaryWriter) WriteInt64(x int64) error {
 	return w.WriteUint64(uint64(x))
 }
 
 // WriteFloat64 writes a float64
-func (w *Writer) WriteFloat64(f float64) error {
+func (w *BinaryWriter) WriteFloat64(f float64) error {
 	return w.WriteUint64(math.Float64bits(f))
 }
 
 // WriteFloat32 writes a float32
-func (w *Writer) WriteFloat32(f float32) error {
+func (w *BinaryWriter) WriteFloat32(f float32) error {
 	return w.WriteUint32(math.Float32bits(f))
 }
 
 // WriteBool writes a bool
-func (w *Writer) WriteBool(t bool) error {
+func (w *BinaryWriter) WriteBool(t bool) error {
 	if t {
 		return w.bw.WriteByte(1)
 	}
@@ -112,7 +112,7 @@ func (w *Writer) WriteBool(t bool) error {
 }
 
 // WriteString writes a string
-func (w *Writer) WriteString(s string) error {
+func (w *BinaryWriter) WriteString(s string) error {
 	if err := w.WriteUvarint(uint64(len(s))); err != nil {
 		return err
 	}
@@ -121,32 +121,32 @@ func (w *Writer) WriteString(s string) error {
 }
 
 // WriteBytes writes bytes
-func (w *Writer) WriteBytes(b []byte) error {
+func (w *BinaryWriter) WriteBytes(b []byte) error {
 	return w.WriteString(*(*string)(unsafe.Pointer(&b)))
 }
 
-// Reader for reading
-type Reader struct {
+// BinaryReader for reading
+type BinaryReader struct {
 	br *bufio.Reader
 }
 
-// NewReader returns a new Reader
-func NewReader(r io.Reader) *Reader {
-	return &Reader{bufio.NewReader(r)}
+// NewBinaryReader returns a new Reader
+func NewBinaryReader(r io.Reader) *BinaryReader {
+	return &BinaryReader{bufio.NewReader(r)}
 }
 
 // ReadUvarint reads a uvarint
-func (r *Reader) ReadUvarint() (uint64, error) {
+func (r *BinaryReader) ReadUvarint() (uint64, error) {
 	return binary.ReadUvarint(r.br)
 }
 
 // ReadVarint reads a varint
-func (r *Reader) ReadVarint() (int64, error) {
+func (r *BinaryReader) ReadVarint() (int64, error) {
 	return binary.ReadVarint(r.br)
 }
 
 // ReadUint64 reads a uint64
-func (r *Reader) ReadUint64() (uint64, error) {
+func (r *BinaryReader) ReadUint64() (uint64, error) {
 	var buf [8]byte
 	if _, err := io.ReadFull(r.br, buf[:]); err != nil {
 		return 0, err
@@ -155,13 +155,13 @@ func (r *Reader) ReadUint64() (uint64, error) {
 }
 
 // ReadInt64 reads an int64
-func (r *Reader) ReadInt64() (int64, error) {
+func (r *BinaryReader) ReadInt64() (int64, error) {
 	x, err := r.ReadUint64()
 	return int64(x), err
 }
 
 // ReadUint32 reads a uint32
-func (r *Reader) ReadUint32() (uint32, error) {
+func (r *BinaryReader) ReadUint32() (uint32, error) {
 	var buf [4]byte
 	if _, err := io.ReadFull(r.br, buf[:]); err != nil {
 		return 0, err
@@ -170,13 +170,13 @@ func (r *Reader) ReadUint32() (uint32, error) {
 }
 
 // ReadInt32 reads an int32
-func (r *Reader) ReadInt32() (int32, error) {
+func (r *BinaryReader) ReadInt32() (int32, error) {
 	x, err := r.ReadUint32()
 	return int32(x), err
 }
 
 // ReadUint16 reads a uint16
-func (r *Reader) ReadUint16() (uint16, error) {
+func (r *BinaryReader) ReadUint16() (uint16, error) {
 	var buf [2]byte
 	if _, err := io.ReadFull(r.br, buf[:]); err != nil {
 		return 0, err
@@ -185,29 +185,29 @@ func (r *Reader) ReadUint16() (uint16, error) {
 }
 
 // ReadInt16 reads an int16
-func (r *Reader) ReadInt16() (int16, error) {
+func (r *BinaryReader) ReadInt16() (int16, error) {
 	x, err := r.ReadUint16()
 	return int16(x), err
 }
 
 // ReadUint8 reads a uint8
-func (r *Reader) ReadUint8() (uint8, error) {
+func (r *BinaryReader) ReadUint8() (uint8, error) {
 	return r.br.ReadByte()
 }
 
 // ReadInt8 reads an int8
-func (r *Reader) ReadInt8() (int8, error) {
+func (r *BinaryReader) ReadInt8() (int8, error) {
 	x, err := r.ReadUint8()
 	return int8(x), err
 }
 
 // ReadByte reads a byte
-func (r *Reader) ReadByte() (byte, error) {
+func (r *BinaryReader) ReadByte() (byte, error) {
 	return r.br.ReadByte()
 }
 
 // ReadFloat64 reads a float64
-func (r *Reader) ReadFloat64() (float64, error) {
+func (r *BinaryReader) ReadFloat64() (float64, error) {
 	x, err := r.ReadUint64()
 	if err != nil {
 		return 0, err
@@ -216,7 +216,7 @@ func (r *Reader) ReadFloat64() (float64, error) {
 }
 
 // ReadFloat32 reads a float32
-func (r *Reader) ReadFloat32() (float32, error) {
+func (r *BinaryReader) ReadFloat32() (float32, error) {
 	x, err := r.ReadUint32()
 	if err != nil {
 		return 0, err
@@ -225,13 +225,13 @@ func (r *Reader) ReadFloat32() (float32, error) {
 }
 
 // ReadBool reads a bool
-func (r *Reader) ReadBool() (bool, error) {
+func (r *BinaryReader) ReadBool() (bool, error) {
 	b, err := r.br.ReadByte()
 	return b != 0, err
 }
 
 // ReadBytes reads bytes
-func (r *Reader) ReadBytes() ([]byte, error) {
+func (r *BinaryReader) ReadBytes() ([]byte, error) {
 	n, err := r.ReadUvarint()
 	if err != nil {
 		return nil, err
@@ -244,7 +244,7 @@ func (r *Reader) ReadBytes() ([]byte, error) {
 }
 
 // ReadString reads a string
-func (r *Reader) ReadString() (string, error) {
+func (r *BinaryReader) ReadString() (string, error) {
 	b, err := r.ReadBytes()
 	if err != nil {
 		return "", err
