@@ -11,8 +11,8 @@ type DataFile struct {
 	info os.FileInfo
 }
 
-func NewDataFile(path string) *DataFile {
-	file, err := OpenFile(path)
+func OpenDataFile(path string) *DataFile {
+	file, err := openFile(path)
 	if err != nil {
 		log.Panicf("error: %v\n", err)
 	}
@@ -26,7 +26,7 @@ func NewDataFile(path string) *DataFile {
 	}
 }
 
-func OpenFile(path string) (*os.File, error) {
+func openFile(path string) (*os.File, error) {
 	var fd *os.File
 	var err error
 	if _, err = os.Stat(path); os.IsNotExist(err) {
