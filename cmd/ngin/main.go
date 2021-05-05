@@ -13,7 +13,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	n, err := en.Write([]byte(""))
+	_, err = en.Write([]byte(""))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// don't forget to close the engine!
 	defer func() {

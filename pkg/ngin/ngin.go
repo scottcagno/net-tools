@@ -242,7 +242,7 @@ func (e *Engine) Write(b []byte) (int, error) {
 		return -1, err
 	}
 	e.write(pos*int64(e.metaData.blockSize), blocks, b)
-	return pos, nil
+	return int(pos), nil
 }
 
 func (e *Engine) write(offset int64, blocks uint64, data []byte) {
