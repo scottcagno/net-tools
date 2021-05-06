@@ -3,4 +3,6 @@ The packages listed below contain are considered
 deprecated and will be removed in later versions
 ================================================
 cmd/pkg
-       /engine
+cmd/pkg/engine/*
+cmd/pkg/file/*
+cmd/pkg/store/*
