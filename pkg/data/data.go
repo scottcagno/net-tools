@@ -28,9 +28,24 @@ func NewDataWriterSize(w io.Writer, size int) *DataWriter {
 	}
 }
 
+// Size returns the size of the underlying buffer in bytes
+func (dw *DataWriter) Size() int {
+	return dw.bw.Size()
+}
+
 // Flush the buffered bytes to the underlying writer
 func (dw *DataWriter) Flush() error {
 	return dw.bw.Flush()
+}
+
+// Buffered returns the number of bytes that have been written into the current buffer
+func (dw *DataWriter) Buffered() int {
+	return dw.bw.Buffered()
+}
+
+// Available returns how many bytes are unused in the buffer
+func (dw *DataWriter) Available() int {
+	return dw.bw.Available()
 }
 
 // WriteUvarint writes a uvarint
@@ -166,9 +181,13 @@ func NewDataReaderSize(r io.Reader, size int) *DataReader {
 	}
 }
 
-// Peek returns the next n bytes without advancing the reader
-func (dr *DataReader) Peek(n int) ([]byte, error) {
-	return dr.br.Peek(n)
+// PeekUint64 reads a uint64 without advancing the reader
+func (dr *DataReader) PeekUint64() (uint64, error) {
+	buf, err := dr.br.Peek(8)
+	if err != nil || len(buf) != 8 {
+		return 0, err
+	}
+	return binary.LittleEndian.Uint64(buf[:]), nil
 }
 
 // ReadUvarint reads a uvarint
@@ -179,11 +198,6 @@ func (dr *DataReader) ReadUvarint() (uint64, error) {
 // ReadVarint reads a varint
 func (dr *DataReader) ReadVarint() (int64, error) {
 	return binary.ReadVarint(dr.br)
-}
-
-// Discard skips the next n bytes
-func (dr *DataReader) Discard(n int) (int, error) {
-	return dr.br.Discard(n)
 }
 
 // ReadUint64 reads a uint64

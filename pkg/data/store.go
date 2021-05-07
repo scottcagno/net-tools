@@ -1,18 +1,23 @@
 package data
 
 import (
+	"fmt"
+	"io"
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
+	"time"
 )
 
 const (
 	defaultMinBufferSize = 16
 	defaultBufferSize    = 4096
 	nullByte             = byte(0x00)
-	maxKeyLen            = 65535                // uint16 max (65535 bytes is ~64KB)
-	maxValueLen          = 4294967295           // uint32 max (4294967295 bytes is ~4096MB)
-	maxTotalLen          = 18446744073709551615 // uint64 max (18446744073709551615 bytes is ~16GB)
+	maxUint16            = uint16(65535)                // 65535 bytes is ~64KB
+	maxUint32            = uint32(4294967295)           // 4294967295 bytes is ~4096MB
+	maxUint64            = uint64(18446744073709551615) // 18446744073709551615 bytes is ~16GB
 )
 
 type Store struct {
@@ -46,24 +51,143 @@ func (s *Store) ReadData() ([]byte, error) {
 	return s.r.ReadBinary()
 }
 
-func (s *Store) NextData() error {
+func (s *Store) DeleteData() ([]byte, error) {
+	s.Lock()
+	defer s.Unlock()
+	// peek at the header
+	n, err := s.r.PeekUint64()
+	if err != nil {
+		return nil, err
+	}
+	// peek at the data
+	b, err := s.r.br.Peek(int(n))
+	if err != nil {
+		return nil, err
+	}
+	// write over the record with an empty one
+	rec := make([]byte, n, n)
+	log.Printf("\nold (%d bytes): %s\nnew (%d bytes): %s\n", len(b), b, len(rec), rec)
+	err = s.w.WriteBinary(rec)
+	if err != nil {
+		return nil, err
+	}
+	err = s.w.bw.Flush()
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func (s *Store) SkipData() error {
 	s.Lock()
 	defer s.Unlock()
 	n, err := s.r.ReadUint64()
 	if err != nil {
 		return err
 	}
-	_, err = s.r.Discard(int(n))
+	_, err = s.r.br.Discard(int(n))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+func (s *Store) GetAllEntries() ([]int64, error) {
+	s.Lock()
+	defer s.Unlock()
+	// go back to the beginning
+	if _, err := s.seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+	var offset int64
+	var entries []int64
+	for {
+		n, err := s.r.ReadUint64()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		d, err := s.r.br.Discard(int(n))
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, offset)
+		offset += int64(8 + d)
+	}
+	return entries, nil
+}
+
+func (s *Store) GetEntry(n int) ([]byte, error) {
+	s.Lock()
+	defer s.Unlock()
+	// go back to the beginning
+	if _, err := s.seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+	var entry int64
+	for entry != int64(n) {
+		n, err := s.r.ReadUint64()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		_, err = s.r.br.Discard(int(n))
+		if err != nil {
+			return nil, err
+		}
+		entry++
+	}
+	return s.r.ReadBinary()
+}
+
+func (s *Store) seek(offset int64, whence int) (int64, error) {
+	off, err := s.fd.Seek(offset, whence)
+	if err != nil {
+		return off, err
+	}
+	s.r = NewDataReaderSize(s.fd, defaultBufferSize)
+	return off, err
+}
+
+func (s *Store) GetEntryOffset(n int) (int64, error) {
+	s.Lock()
+	defer s.Unlock()
+	// go back to the beginning
+	if _, err := s.seek(0, io.SeekStart); err != nil {
+		return -1, err
+	}
+	var entry int64
+	var offset int64
+	for entry != int64(n) {
+		n, err := s.r.ReadUint64()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return -1, err
+		}
+		d, err := s.r.br.Discard(int(n))
+		if err != nil {
+			return -1, err
+		}
+		entry++
+		offset += int64(8 + d)
+	}
+	return offset, nil
+}
+
 func (s *Store) Close() error {
 	s.Lock()
 	defer s.Unlock()
-	err := s.fd.Sync()
+	err := s.w.bw.Flush()
+	if err != nil {
+		return err
+	}
+	err = s.fd.Sync()
 	if err != nil {
 		return err
 	}
@@ -72,6 +196,25 @@ func (s *Store) Close() error {
 		return err
 	}
 	return nil
+}
+
+func (s *Store) String() string {
+	fi, err := s.fd.Stat()
+	if err != nil {
+		log.Panic(err)
+	}
+	var sb strings.Builder
+	timef := "01/02/2006 " + time.Kitchen
+	sb.WriteString(fmt.Sprintf("===[ %s ]===\n", time.Now().Format(timef)))
+	sb.WriteString("\nFile Info\n==========\n")
+	sb.WriteString(fmt.Sprintf("Name: %s\n", fi.Name()))
+	sb.WriteString(fmt.Sprintf("Size: %d\n", fi.Size()))
+	sb.WriteString(fmt.Sprintf("Modified: %s\n", fi.ModTime().Format(timef)))
+	sb.WriteString("\nBuffer Info\n==========\n")
+	sb.WriteString(fmt.Sprintf("Size: %d\n", s.w.Size()))
+	sb.WriteString(fmt.Sprintf("Buffered: %d\n", s.w.Buffered()))
+	sb.WriteString(fmt.Sprintf("Available: %d\n", s.w.Available()))
+	return sb.String()
 }
 
 func OpenFile(path string) (*os.File, error) {
