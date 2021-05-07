@@ -181,6 +181,7 @@ func (dr *DataReader) ReadVarint() (int64, error) {
 	return binary.ReadVarint(dr.br)
 }
 
+// Discard skips the next n bytes
 func (dr *DataReader) Discard(n int) (int, error) {
 	return dr.br.Discard(n)
 }
